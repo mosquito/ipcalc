@@ -8,20 +8,81 @@ body {
     flex-direction: column;
     align-items: center;
 }
+
 .container {
     text-align: center;
     width: 100%;
     max-width: 1000px;
 }
-.form-group {
+
+.visual-block {
+    display: block;
+    background-color: #34352f;
+    border: 1px solid #49483e;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+.visual-block h2 {
+    color: #66d9ef;
+    margin-top: 0;
     margin-bottom: 15px;
+    border-bottom: 1px solid #49483e;
+    padding-bottom: 10px;
+}
+
+.visual-block:last-child {
+    margin-bottom: 0;
+}
+
+
+.form-group {
+    position: relative;
+}
+
+.form-group input {
+    margin: 15px 0;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input.error {
+    border-color: #F92672;
+}
+
+.error-tooltip {
+    position: absolute;
+    background-color: #F92672;
+    color: #F8F8F2;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 1000;
+    transform: translateX(-50%) translateY(-100%);
+    pointer-events: none;
+}
+
+.error-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #F92672 transparent transparent transparent;
 }
 
 .result table {
     width: 100%;
     border-spacing: 0;
     border: 1px solid #3E3D32;
-    table-layout: fixed;
 }
 
 .result th:first-child,
@@ -107,6 +168,10 @@ body {
     overflow: visible;
 }
 
+.result table td span.address-parts {
+    word-wrap: break-word;
+}
+
 .result table td span.address {
     color: #85825E;
 }
@@ -130,18 +195,22 @@ button {
 button:hover {
     background-color: #A6E22E;
 }
+
 .description {
     text-align: left;
     margin-top: 20px;
     line-height: 1.5;
-    max-width: 800px;
-    width: 100%;
 }
 
 
 #history {
     white-space: nowrap;
     padding: 20px 0;
+}
+
+
+#history h2 {
+    text-align: left;
 }
 
 
@@ -202,7 +271,6 @@ button:hover {
 .copy::after {
     content: "Click to copy";
     position: absolute;
-    bottom: 125%;
     left: 50%;
     transform: translateX(-50%);
     background-color: #272822;
@@ -215,6 +283,7 @@ button:hover {
     visibility: hidden;
     transition: opacity 0.3s, visibility 0.3s;
     z-index: 10;
+    bottom: calc(100% + 5px);
 }
 
 .copy:hover::after {
@@ -222,16 +291,9 @@ button:hover {
     visibility: visible;
 }
 
-.copy.copied::after {
-    content: "Copied!";
-    background-color: #A6E22E;
-    color: #272822;
-}
-
 .copy::before {
     content: "";
     position: absolute;
-    bottom: 75%;
     left: 50%;
     transform: translateX(-50%);
     border: 5px solid transparent;
@@ -240,11 +302,18 @@ button:hover {
     visibility: hidden;
     transition: opacity 0.3s, visibility 0.3s;
     z-index: 10;
+    bottom: calc(100% - 5px);
 }
 
 .copy:hover::before {
     opacity: 1;
     visibility: visible;
+}
+
+.copy.copied::after {
+    content: "Copied!";
+    background-color: #A6E22E;
+    color: #272822;
 }
 
 .copy.copied::before {

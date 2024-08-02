@@ -10,16 +10,17 @@
 <body>
     <div class="container">
         <h1>IPCalc</h1>
-        <form id="ipForm">
-            <div class="form-group">
-                <label for="ipAddress">IP Address/Subnet:</label>
-                <input type="text" id="ipAddress" name="ipAddress" placeholder="e.g. 192.168.0.0 or 2000::/3" required>
-            </div>
-            <button type="submit" hidden></button>
-        </form>
-        <div id="results" class="result"></div>
-        <div id="history"></div>
-        <div class="description">
+        <div class="visual-block">
+            <form id="ipForm">
+                <div class="form-group">
+                    <input type="text" id="ipAddress" name="ipAddress" placeholder="e.g. 192.168.0.0 or 2000::/3" required>
+                </div>
+                <button type="submit" hidden></button>
+            </form>
+            <div id="results" class="result"></div>
+            <div id="history"></div>
+        </div>
+        <div class="description visual-block">
             <h2>How to use IPCalc</h2>
             <p>Enter an IP address along with its subnet in the input field. The format should be in IPv4 or IPv6 notation.</p>
             <p>Examples:</p>

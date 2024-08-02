@@ -293,22 +293,24 @@ class IPv4 extends Address {
         let completeNetworkOctets = Math.floor(prefixLength / 8);
         let partialOctetBits = prefixLength % 8;
 
-        let result = '';
+        let networkPart = '';
+        let addressPart = '';
+
         for (let i = 0; i < 4; i++) {
-            if (i > 0) result += '.';
             if (i < completeNetworkOctets) {
-                result += `<span class="network">${octets[i]}</span>`;
+                networkPart += (networkPart ? '.' : '') + octets[i];
             } else if (i === completeNetworkOctets && partialOctetBits > 0) {
                 let mask = (255 << (8 - partialOctetBits)) & 255;
-                let networkPart = (Number(octets[i]) & mask).toString().padStart(3, '0');
-                let addressPart = (Number(octets[i]) & ~mask).toString().padStart(3, '0');
-                result += `<span class="network">${networkPart.slice(0, -addressPart.length)}</span><span class="address">${addressPart}</span>`;
+                let networkSegment = (Number(octets[i]) & mask).toString().padStart(3, '0');
+                let addressSegment = (Number(octets[i]) & ~mask).toString().padStart(3, '0');
+                networkPart += (networkPart ? '.' : '') + networkSegment;
+                addressPart += (addressPart ? '.' : '') + addressSegment;
             } else {
-                result += `<span class="address">${octets[i]}</span>`;
+                addressPart += (addressPart ? '.' : '') + octets[i];
             }
         }
 
-        return `${result}/${prefixLength}`;
+        return `<span class="address-parts"><span class="network">${networkPart}</span><span class="address">${addressPart}</span></span>`;
     }
 
     get arpaFormat() {
@@ -441,22 +443,32 @@ class IPv6 extends Address {
             hextets.push(hexString.slice(i, i + 4));
         }
         let prefixLength = Number(this.prefixLength);
-        let completeNetworkHextets = Math.floor(prefixLength / 16);
-        let partialHextetBits = prefixLength % 16;
 
-        let result = '';
+        let result = '<span class="network">';
+        let networkBitsLeft = prefixLength;
+
         for (let i = 0; i < 8; i++) {
             if (i > 0) result += ':';
-            if (i < completeNetworkHextets) {
-                result += `<span class="network">${hextets[i]}</span>`;
-            } else if (i === completeNetworkHextets && partialHextetBits > 0) {
-                let networkPart = hextets[i].slice(0, Math.ceil(partialHextetBits / 4));
-                let addressPart = hextets[i].slice(Math.ceil(partialHextetBits / 4));
-                result += `<span class="network">${networkPart}</span><span class="address">${addressPart}</span>`;
+
+            if (networkBitsLeft >= 16) {
+                result += hextets[i];
+                networkBitsLeft -= 16;
+            } else if (networkBitsLeft > 0) {
+                let networkPart = hextets[i].slice(0, Math.ceil(networkBitsLeft / 4));
+                let addressPart = hextets[i].slice(Math.ceil(networkBitsLeft / 4));
+                result += `${networkPart}</span><span class="address">${addressPart}`;
+                networkBitsLeft = 0;
             } else {
-                result += `<span class="address">${hextets[i]}</span>`;
+                if (networkBitsLeft === 0) {
+                    result += '</span><span class="address">';
+                    networkBitsLeft = -1;
+                }
+                result += hextets[i];
             }
         }
+
+        result += '</span>';
+
         return `${result}/${prefixLength}`;
     }
 
@@ -692,13 +704,37 @@ function getAddressFromURL() {
 document.getElementById('ipForm').addEventListener('submit', function(event) {
     event.preventDefault();
     const input = document.getElementById('ipAddress');
+    const formGroup = input.closest('.form-group');
+
+    const existingTooltip = formGroup.querySelector('.error-tooltip');
+    if (existingTooltip) {
+        existingTooltip.remove();
+    }
+    input.classList.remove('error');
+
+    function showErrorTooltip(message) {
+        const tooltip = document.createElement('span');
+        tooltip.className = 'error-tooltip';
+        tooltip.textContent = message;
+        formGroup.appendChild(tooltip);
+        input.classList.add('error');
+
+        const inputRect = input.getBoundingClientRect();
+        const formGroupRect = formGroup.getBoundingClientRect();
+        tooltip.style.left = `${inputRect.left - formGroupRect.left + inputRect.width / 2}px`;
+        tooltip.style.top = `${inputRect.top - formGroupRect.top - 10}px`;
+
+        setTimeout(() => {
+            tooltip.remove();
+            input.classList.remove('error');
+        }, 3000);
+    }
 
     try {
+        const ipObj = parseIp(input.value);
         displayResults(input.value);
-
     } catch (error) {
-        alert(error.message);
-        throw error;
+        showErrorTooltip(error.message);
     }
 });
 
