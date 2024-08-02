@@ -305,8 +305,66 @@ function displayResults(results) {
             <tr><td>Dotted decimal ID</td><td data-type="address"><a onclick="copy(this)" class="copy">${results.dottedDecimalId}</></td></tr>
             <tr><td>Base 85 ID</td><td data-type="id"><a onclick="copy(this)" class="copy">${results.base85Id}</></td></tr>
             <tr><td>arpa Format</td><td data-type="address"><a onclick="copy(this)" class="copy">${results.arpaFormat}</></td></tr>
+            <tr>
+                <td>Check IP in subnet</td>
+                <td>
+                    <input type="text" id="checkIpInput" placeholder="Enter IP to check">
+                    <button id="checkIpButton" onclick="checkIpInSubnet('${results.network}')">Check</button>
+                    <span id="checkResult"></span>
+                </td>
+            </tr>
         </table>
     `;
+
+    document.getElementById('checkIpInput').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            checkIpInSubnet(results.network);
+        }
+    });
+
+    document.getElementById('checkIpButton').addEventListener('click', function() {
+        checkIpInSubnet(results.network);
+    });
+}
+
+function checkIpInSubnet(network) {
+    const ipToCheck = document.getElementById('checkIpInput').value.trim();
+    if (!ipToCheck) {
+        showCheckResult('Please enter an IP address to check', 'warning');
+        return;
+    }
+
+    const [networkAddress, prefixLength] = network.split('/');
+
+    try {
+        const networkObj = parseIp(network);
+        const ipObj = parseIp(ipToCheck);
+
+        if (networkObj.constructor !== ipObj.constructor) {
+            throw new Error("IP version mismatch");
+        }
+
+        const isInSubnet = ipObj.address >= networkObj.networkAddress && ipObj.address <= networkObj.broadcastAddress;
+
+        if (isInSubnet) {
+            showCheckResult(`${ipToCheck} is in the subnet`, 'success');
+        } else {
+            showCheckResult(`${ipToCheck} is not in the subnet`, 'error');
+        }
+    } catch (error) {
+        showCheckResult(`Error: ${error.message}`, 'error');
+    }
+}
+
+function showCheckResult(message, status) {
+    const resultSpan = document.getElementById('checkResult');
+    resultSpan.classList.remove('visible', 'success', 'error', 'warning');
+
+    setTimeout(() => {
+        resultSpan.textContent = message;
+        resultSpan.classList.add('visible', status);
+    }, 50);
 }
 
 function copy(element) {
@@ -383,14 +441,11 @@ async function main() {
         updateHistory();
     } else {
         let result = await history.getLast();
-        if (result && result.value) {
-            fillForm(result.value);
-        }
+        if (result && result.value) { fillForm(result.value); }
     }
 
     document.getElementById('ipAddress').focus()
 }
-
 
 
 async function updateHistory() {

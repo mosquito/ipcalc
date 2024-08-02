@@ -82,6 +82,11 @@ body {
     background-color: #35342A;
 }
 
+.result tr:last-child td {
+    padding-top: 20px;
+    border-top: 2px solid #3E3D32;
+}
+
 .result {
     overflow-x: auto;
 }
@@ -243,4 +248,74 @@ button:hover {
 
 .copy.copied::before {
     border-top-color: #A6E22E;
+}
+
+#checkIpInput {
+    padding: 8px 10px;
+    margin-right: 10px;
+    background-color: #3E3D32;
+    color: #F8F8F2;
+    border: 1px solid #49483E;
+    border-radius: 3px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    width: 200px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+#checkIpInput:focus {
+    outline: none;
+    border-color: #66D9EF;
+    box-shadow: 0 0 0 2px rgba(102, 217, 239, 0.2);
+}
+
+#checkIpInput::placeholder {
+    color: #75715E;
+}
+
+/* Button styling */
+.result td button {
+    padding: 8px 15px;
+    background-color: #66D9EF;
+    color: #272822;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+.result td button:hover {
+    background-color: #A6E22E;
+}
+
+.result td button:active {
+    transform: scale(0.98);
+}
+
+#checkResult {
+    margin-left: 15px;
+    font-weight: bold;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+#checkResult.visible {
+    opacity: 1;
+}
+
+#checkResult.success {
+    color: #A6E22E;
+}
+
+#checkResult.error {
+    color: #F92672;
+}
+
+#checkResult.warning {
+    color: #FD971F;
 }
