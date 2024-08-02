@@ -131,6 +131,10 @@ class Address {
         this.prefixLength = BigInt(prefixLength);
     }
 
+    toBinary() {
+        return this.address.toString(2).padStart(Number(this.totalBits), '0');
+    }
+
     get broadcastAddress() {
         if (this.prefixLength === this.totalBits) return this;
         return new this.constructor((
@@ -332,6 +336,11 @@ class IPv4 extends Address {
         const nat64 = new IPv6(nat64Prefix.address + this.address, 96);
         return `${nat64.compact()}/${nat64.prefixLength}`;
     }
+
+    toBinary() {
+        let binary = super.toBinary();
+        return binary.match(/.{8}/g).join(' ');
+    }
 }
 
 class IPv6 extends Address {
@@ -505,6 +514,11 @@ class IPv6 extends Address {
         if (this.type !== 'NAT64') return 'Not applicable';
         const ipv4Address = this.address - nat64Prefix.address;
         return new IPv4(ipv4Address, 32).toString();
+    }
+
+    toBinary() {
+        let binary = super.toBinary();
+        return binary.match(/.{16}/g).join(' ');
     }
 }
 
