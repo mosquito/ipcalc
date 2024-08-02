@@ -136,14 +136,14 @@ button:hover {
 
 
 #history {
-    overflow-x: auto;
     white-space: nowrap;
     padding: 20px 0;
 }
 
 
 #history ul {
-    display: inline-flex;
+    display: block;
+    overflow-x: auto;
     list-style-type: none;
     padding: 0;
     margin: 0;

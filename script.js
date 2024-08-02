@@ -115,21 +115,57 @@ class History {
 
 class Address {
     constructor(ip, prefixLength) {
+        switch (typeof ip) {
+            case 'string':
+                this.address = this.toInteger(ip);
+                break;
+            case 'bigint':
+                this.address = ip;
+                break;
+            case "number":
+                this.address = BigInt(ip);
+                break;
+            default:
+                throw new Error("Invalid IP address format");
+        }
         this.prefixLength = BigInt(prefixLength);
-        this.address = this.toInteger(ip);
-        this.totalBits = this.getTotalBits();
-        this.networkAddress = this.address & this.prefixToMask(this.prefixLength, this.totalBits);
-        const broadcastMask = ~this.prefixToMask(this.prefixLength, this.totalBits) & this.prefixToMask(this.totalBits, this.totalBits);
-        this.broadcastAddress = this.address | broadcastMask;
-        this.firstAddress = this.networkAddress + 1n;
-        this.lastAddress = this.broadcastAddress - 1n;
+    }
+
+    get broadcastAddress() {
+        return new this.constructor((
+            this.address | (
+                ~this.prefixToMask(this.prefixLength, this.totalBits) &
+                this.prefixToMask(this.totalBits, this.totalBits)
+            )
+        ), this.prefixLength);
+    }
+
+    get networkAddress() {
+        return new this.constructor(
+            this.address & this.prefixToMask(this.prefixLength, this.totalBits),
+            this.prefixLength
+        );
+    }
+
+    get firstAddress() {
+        return new this.constructor(
+            this.networkAddress.address + 1n,
+            this.prefixLength
+        );
+    }
+
+    get lastAddress() {
+        return new this.constructor(
+            this.broadcastAddress.address - 1n,
+            this.prefixLength
+        );
     }
 
     toInteger(ip) {
         throw new Error("Method 'toInteger(ip)' must be implemented.");
     }
 
-    toString(int) {
+    toString() {
         throw new Error("Method 'toString(int)' must be implemented.");
     }
 
@@ -137,23 +173,15 @@ class Address {
         return (1n << totalBits) - (1n << (totalBits - prefixLength));
     }
 
-    getLength() {
+    get length() {
         return 1n << (this.totalBits - this.prefixLength);
     }
 
-    getHexId() {
+    get hexId() {
         return '0x' + this.address.toString(16).padStart(Number(this.totalBits / 4n), '0');
     }
 
-    getArpaFormat() {
-        throw new Error("Method 'getArpaFormat()' must be implemented.");
-    }
-
-    getType() {
-        throw new Error("Method 'getType()' must be implemented.");
-    }
-
-    getBase85Id() {
+    get base85Id() {
         const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
         let int = this.address;
         let result = '';
@@ -163,6 +191,52 @@ class Address {
         }
         return result;
     }
+
+    get base64Id() {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let int = this.address;
+        let result = '';
+        while (int > 0) {
+            result = chars[int % 64n] + result;
+            int = int / 64n;
+        }
+        return result;
+    }
+
+    get base32Id() {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        let int = this.address;
+        let result = '';
+        while (int > 0) {
+            result = chars[int % 32n] + result;
+            int = int / 32n;
+        }
+        return result;
+    }
+
+    get totalBits() {
+        throw new Error("Getter 'totalBits' must be implemented.");
+    }
+
+    get arpaFormat() {
+        throw new Error("Getter 'getArpaFormat()' must be implemented.");
+    }
+
+    get addressTypes() {
+        throw new Error("Getter 'addressTypes' must be implemented.");
+    }
+
+    get type() {
+        for (const [type, start, end] of this.addressTypes) {
+            if (start <= this.address && end >= this.address) return type;
+        }
+        return "Unknown";
+    }
+
+    nat64() {
+        throw new Error("Method 'nat64' must be implemented.");
+    }
+
 }
 
 class IPv4 extends Address {
@@ -178,43 +252,44 @@ class IPv4 extends Address {
         ["Global Unicast", "0.0.0.0", "223.255.255.255"]
     ].map(([type, start, end]) => [type, IPv4.toBigInt(start), IPv4.toBigInt(end)]);
 
-    getTotalBits() {
-        return BigInt(32);
+    get addressTypes() {
+        return IPv4.TYPE_LIST;
+    }
+
+    get totalBits() {
+        return 32n;
     }
 
     toInteger(ip) {
         return ip.split('.').reduce((int, octet) => int * 256n + BigInt(octet), 0n);
     }
 
-    toString(int) {
+    toString() {
         return [
-            Number(int >> 24n & 255n),
-            Number(int >> 16n & 255n),
-            Number(int >> 8n & 255n),
-            Number(int & 255n)
+            Number(this.address >> 24n & 255n),
+            Number(this.address >> 16n & 255n),
+            Number(this.address >> 8n & 255n),
+            Number(this.address & 255n)
         ].join('.');
     }
 
-    getArpaFormat() {
-        return this.toString(this.address).split('.').reverse().join('.') + '.in-addr.arpa';
-    }
-
-    getType() {
-        for (const [type, start, end] of IPv4.TYPE_LIST) {
-            if (this.networkAddress >= start && this.broadcastAddress <= end) {
-                return type;
-            }
-        }
-        return "Unknown";
+    get arpaFormat() {
+        return this.toString().split('.').reverse().join('.') + '.in-addr.arpa';
     }
 
     static toBigInt(ip) {
         return ip.split('.').reduce((int, octet) => int * 256n + BigInt(octet), 0n);
     }
+
+    nat64() {
+        const nat64 = new IPv6(nat64Prefix.address + this.address, 96);
+        return `${nat64.compact()}/${nat64.prefixLength}`;
+    }
 }
 
 class IPv6 extends Address {
     static TYPE_LIST = [
+        ["NAT64", "64:ff9b::", "64:ff9b::ffff:ffff"],
         ["Global Unicast", "2000::", "3fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"],
         ["Link-local", "fe80::", "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff"],
         ["Unique Local", "fc00::", "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"],
@@ -225,11 +300,15 @@ class IPv6 extends Address {
         ["Reserved", "4000::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"]
     ].map(([type, start, end]) => [type, IPv6.toBigInt(start), IPv6.toBigInt(end)]);
 
-    getTotalBits() {
-        return BigInt(128);
+    get addressTypes() {
+        return IPv6.TYPE_LIST;
     }
 
-    expandIPv6(ip) {
+    get totalBits() {
+        return 128n;
+    }
+
+    expand(ip) {
         const parts = ip.split('::');
         let head = parts[0].split(':').map(part => part || '0');
         let tail = parts[1] ? parts[1].split(':').map(part => part || '0') : [];
@@ -237,28 +316,36 @@ class IPv6 extends Address {
         return [...head, ...middle, ...tail].join(':');
     }
 
+    compact() {
+        // removes zeros octets from middle and replace it with '::'
+        let ip = this.toString();
+        return ip.replace(/(^|:)0{1,4}(?=(:|$))/g, '::').replace(/:{2,}/, '::');
+    }
+
     toInteger(ip) {
-        ip = this.expandIPv6(ip);
+        ip = this.expand(ip);
         return ip.split(':').reduce((int, hextet) => int * 65536n + BigInt(parseInt(hextet, 16)), 0n);
     }
 
-    toString(int) {
-        let hexString = int.toString(16).padStart(32, '0');
+    toString() {
+        let hexString = this.address.toString(16).padStart(32, '0');
         let hextets = [];
         for (let i = 0; i < 32; i += 4) {
-            hextets.push(hexString.slice(i, i + 4));
+            hextets.push(hexString.slice(i, i + 4).replace(/^0{1,3}/, ''));
         }
-        return hextets.join(':').replace(/(^|:)0{1,3}(?=0+(:|$))/g, '$1').replace(/:{2,}/, '::');
+        return hextets.join(':').replace(/:{2,}/, '::');
     }
 
-    getArpaFormat() {
+    get arpaFormat() {
         let reversed = this.toString(this.address).split(':').map(part => part.padStart(4, '0')).join('').split('').reverse().join('.');
         return `${reversed}.ip6.arpa`;
     }
 
-    getType() {
+    get type() {
+        const networkAddress = this.networkAddress.address;
+        const broadcastAddress = this.broadcastAddress.address;
         for (const [type, start, end] of IPv6.TYPE_LIST) {
-            if (this.networkAddress >= start && this.broadcastAddress <= end) {
+            if (networkAddress >= start && broadcastAddress <= end) {
                 return type;
             }
         }
@@ -266,10 +353,19 @@ class IPv6 extends Address {
     }
 
     static toBigInt(ip) {
-        ip = IPv6.prototype.expandIPv6(ip);
+        ip = IPv6.prototype.expand(ip);
         return ip.split(':').reduce((int, hextet) => int * 65536n + BigInt(parseInt(hextet, 16)), 0n);
     }
+
+    nat64() {
+
+        if (this.type !== 'NAT64') return 'Not applicable';
+        const ipv4Address = this.address - nat64Prefix.address;
+        return new IPv4(ipv4Address, 32).toString();
+    }
 }
+
+const nat64Prefix = new IPv6('64:ff9b::', 96);
 
 function parseIp(input) {
     let [ip, prefixLength] = input.split('/');
@@ -288,23 +384,101 @@ function parseIp(input) {
     }
 }
 
-function displayResults(results) {
+function displayResults(input) {
+    let ipObj = parseIp(input);
+    setAddressInURL(input);
+
     let resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = `
         <table>
-            <tr><th>Field</th><th>Value</th></tr>
-            <tr><td>Address</td><td data-type="address"><a onclick="copy(this)" class="copy">${results.ip}</a></td></tr>
-            <tr><td>Type</td><td data-type="type"><a onclick="copy(this)" class="copy">${results.type}</></td></tr>
-            <tr><td>Network</td><td data-type="network"><a onclick="copy(this)" class="copy">${results.network}</></td></tr>
-            <tr><td>Broadcast</td><td data-type="address"><a onclick="copy(this)" class="copy">${results.broadcast}</></td></tr>
-            <tr><td>Network range</td><td data-type="range"><span class="ip-range"><a onclick="copy(this)" class="copy"an>${results.networkRange.split(' - ')[0]}</span> <span>${results.networkRange.split(' - ')[1]}</span></span></a></td></tr>
-            <tr><td>Hosts Addresses</td><td data-type="range"><span class="ip-range"><a onclick="copy(this)" class="copy"an>${results.firstAddress}</span> <span>${results.lastAddress}</span></span></a></td></tr>
-            <tr><td>Total IP addresses</td><td data-type="number"><a onclick="copy(this)" class="copy">${results.totalAddresses}</></td></tr>
-            <tr><td>Integer ID</td><td data-type="id"><a onclick="copy(this)" class="copy">${results.integerId}</></td></tr>
-            <tr><td>Hexadecimal ID</td><td data-type="id"><a onclick="copy(this)" class="copy">${results.hexId}</></td></tr>
-            <tr><td>Dotted decimal ID</td><td data-type="address"><a onclick="copy(this)" class="copy">${results.dottedDecimalId}</></td></tr>
-            <tr><td>Base 85 ID</td><td data-type="id"><a onclick="copy(this)" class="copy">${results.base85Id}</></td></tr>
-            <tr><td>arpa Format</td><td data-type="address"><a onclick="copy(this)" class="copy">${results.arpaFormat}</></td></tr>
+            <tr>
+                <th>Field</th>
+                <th>Value</th>
+            </tr>
+            <tr>
+                <td>Address</td>
+            <td data-type="address">
+                <a onclick="copy(this)" class="copy">${ipObj.toString()}/${ipObj.prefixLength}</a>
+            </td>
+            </tr>
+            <tr>
+                <td>Type</td>
+                <td data-type="type">
+                    <a onclick="copy(this)" class="copy">${ipObj.type}</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Network</td>
+                <td data-type="network">
+                    <a onclick="copy(this)" class="copy">${ipObj.networkAddress.toString()}</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Broadcast</td>
+                <td data-type="address">
+                    <a onclick="copy(this)" class="copy">${ipObj.networkAddress.toString()}</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Network range</td>
+                <td data-type="range">
+                    <a onclick="copy(this)" class="copy"><span class="ip-range">${ipObj.networkAddress.toString()}</span><span>${ipObj.broadcastAddress.toString()}</span></a>
+                </td>
+            </tr>
+            <tr>
+                <td>Hosts Addresses</td>
+                <td data-type="range">
+                    <a onclick="copy(this)" class="copy"><span class="ip-range">${ipObj.firstAddress.toString()}</span> - <span>${ipObj.lastAddress.toString()}</span></a>
+                </td>
+            </tr>
+            <tr>
+                <td>Total IP addresses</td>
+                <td data-type="number">
+                    <a onclick="copy(this)" class="copy">${ipObj.length.toString()}</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Integer ID</td>
+                <td data-type="id">
+                    <a onclick="copy(this)" class="copy">${ipObj.address.toString()}</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Hexadecimal ID</td>
+                <td data-type="id">
+                    <a onclick="copy(this)" class="copy">${ipObj.hexId}</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Base 32 ID</td>
+                <td data-type="id">
+                    <a onclick="copy(this)" class="copy">${ipObj.base32Id}</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Base 64 ID</td>
+                <td data-type="id">
+                    <a onclick="copy(this)" class="copy">${ipObj.base64Id}</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Base 85 ID</td>
+                <td data-type="id">
+                    <a onclick="copy(this)" class="copy">${ipObj.base85Id}</a>
+                </td>
+            </tr>
+            <tr>
+                <td>arpa Format</td>
+                <td data-type="address">
+                    <a onclick="copy(this)" class="copy">${ipObj.arpaFormat}</a>
+                </td>
+            </tr>
+            <tr>
+                <td>Nat64</td>
+                <td data-type="address">
+                    <a onclick="copy(this)" class="copy">${ipObj.nat64()}</a>
+                </td>
+            </tr>
             <tr>
                 <td>Check IP in subnet</td>
                 <td>
@@ -326,6 +500,9 @@ function displayResults(results) {
     document.getElementById('checkIpButton').addEventListener('click', function() {
         checkIpInSubnet(results.network);
     });
+
+    updateHistory();
+    history.store(input);
 }
 
 function checkIpInSubnet(network) {
@@ -388,36 +565,16 @@ function getAddressFromURL() {
     return urlParams.get('address');
 }
 
-function analyzeIp(input) {
-    let ipObj = parseIp(input);
-    setAddressInURL(input);
-    return {
-        ip: `${ipObj.toString(ipObj.address)}/${Number(ipObj.prefixLength)}`,
-        type: ipObj.getType(),
-        network: `${ipObj.toString(ipObj.networkAddress)}/${Number(ipObj.prefixLength)}`,
-        broadcast: ipObj.toString(ipObj.broadcastAddress),
-        networkRange: `${ipObj.toString(ipObj.networkAddress)} - ${ipObj.toString(ipObj.broadcastAddress)}`,
-        firstAddress: ipObj.toString(ipObj.firstAddress),
-        lastAddress: ipObj.toString(ipObj.lastAddress),
-        totalAddresses: ipObj.getLength().toString(),
-        integerId: ipObj.address.toString(),
-        hexId: ipObj.getHexId(),
-        dottedDecimalId: ipObj.toString(ipObj.address),
-        base85Id: ipObj.getBase85Id(),
-        arpaFormat: ipObj.getArpaFormat()
-    };
-}
-
 document.getElementById('ipForm').addEventListener('submit', function(event) {
     event.preventDefault();
     const input = document.getElementById('ipAddress');
 
     try {
-        let results = analyzeIp(input.value);
-        displayResults(results);
-        history.store(input.value);
+        displayResults(input.value);
+
     } catch (error) {
         alert(error.message);
+        throw error;
     }
 });
 
@@ -428,24 +585,13 @@ function fillForm(value) {
     if (!value) return;
 
     document.getElementById('ipAddress').value = value;
-    let results = analyzeIp(value);
-    displayResults(results);
-    updateHistory();
+    displayResults(value);
 }
 
 async function main() {
     await history.init();
-
     const urlAddress = getAddressFromURL();
-    if (urlAddress) {
-        document.getElementById('ipAddress').value = urlAddress;
-        document.getElementById('ipForm').dispatchEvent(new Event('submit'));
-        updateHistory();
-    } else {
-        let result = await history.getLast();
-        if (result && result.value) { fillForm(result.value); }
-    }
-
+    if (urlAddress) { fillForm(urlAddress); } else { fillForm(await history.getLast()); }
     document.getElementById('ipAddress').focus()
 }
 
