@@ -637,8 +637,7 @@ function displayResults(input) {
         checkIpInSubnet(results.network);
     });
 
-    updateHistory();
-    history.store(input);
+    history.store(input).then(updateHistory);
 }
 
 function checkIpInSubnet(network) {
@@ -762,9 +761,11 @@ async function updateHistory() {
     let historyDiv = document.getElementById('history');
     historyDiv.innerHTML = `
         <h2>History</h2>
-        <ul>
-            ${results.map(result => `<li><a onclick="fillForm(this.text)">${result.value}</a></li>`).join('')}
-        </ul>
+        <div class="history-scroll">
+            <ul>
+                ${results.map(result => `<li><a onclick="fillForm(this.text)">${result.value}</a></li>`).join('')}
+            </ul>
+        </div>
     `;
 }
 
