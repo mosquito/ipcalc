@@ -290,27 +290,34 @@ class IPv4 extends Address {
         ];
 
         let prefixLength = Number(this.prefixLength);
-        let completeNetworkOctets = Math.floor(prefixLength / 8);
-        let partialOctetBits = prefixLength % 8;
 
-        let networkPart = '';
-        let addressPart = '';
+        let result = '<span class="network">';
+        let networkBitsLeft = prefixLength;
 
         for (let i = 0; i < 4; i++) {
-            if (i < completeNetworkOctets) {
-                networkPart += (networkPart ? '.' : '') + octets[i];
-            } else if (i === completeNetworkOctets && partialOctetBits > 0) {
-                let mask = (255 << (8 - partialOctetBits)) & 255;
-                let networkSegment = (Number(octets[i]) & mask).toString().padStart(3, '0');
-                let addressSegment = (Number(octets[i]) & ~mask).toString().padStart(3, '0');
-                networkPart += (networkPart ? '.' : '') + networkSegment;
-                addressPart += (addressPart ? '.' : '') + addressSegment;
+            if (i > 0) result += '.';
+
+            if (networkBitsLeft >= 8) {
+                result += octets[i];
+                networkBitsLeft -= 8;
+            } else if (networkBitsLeft > 0) {
+                let mask = 256 - (1 << (8 - networkBitsLeft));
+                let networkPart = (parseInt(octets[i]) & mask).toString().padStart(3, '0');
+                let addressPart = (parseInt(octets[i]) & ~mask).toString().padStart(3, '0');
+                result += `${networkPart.slice(0, -addressPart.length)}</span><span class="address">${addressPart}`;
+                networkBitsLeft = 0;
             } else {
-                addressPart += (addressPart ? '.' : '') + octets[i];
+                if (networkBitsLeft === 0) {
+                    result += '</span><span class="address">';
+                    networkBitsLeft = -1; // Чтобы не добавлять закрывающий тег повторно
+                }
+                result += octets[i];
             }
         }
 
-        return `<span class="address-parts"><span class="network">${networkPart}</span><span class="address">${addressPart}</span></span>`;
+        result += '</span>';
+
+        return `${result}/${prefixLength}`;
     }
 
     get arpaFormat() {
