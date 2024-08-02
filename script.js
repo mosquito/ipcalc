@@ -169,6 +169,10 @@ class Address {
         throw new Error("Method 'toString(int)' must be implemented.");
     }
 
+    toCompleteString() {
+        throw new Error("Method 'toCompleteString(int)' must be implemented.");
+    }
+
     prefixToMask(prefixLength, totalBits) {
         return (1n << totalBits) - (1n << (totalBits - prefixLength));
     }
@@ -273,6 +277,21 @@ class IPv4 extends Address {
         ].join('.');
     }
 
+    toCompleteString() {
+        let octets = [
+            String(this.address >> 24n & 255n).padStart(3, '0'),
+            String(this.address >> 16n & 255n).padStart(3, '0'),
+            String(this.address >> 8n & 255n).padStart(3, '0'),
+            String(this.address & 255n).padStart(3, '0')
+        ];
+
+        let prefixLength = Number(this.prefixLength);
+        let networkPart = octets.slice(0, Math.ceil(prefixLength / 8)).join('.') + (prefixLength % 8 === 0 ? '.' : '');
+        let addressPart = octets.slice(Math.ceil(prefixLength / 8)).join('.');
+
+        return `<span class="network">${networkPart}</span><span class="address">${addressPart}</span>/${prefixLength}`;
+    }
+
     get arpaFormat() {
         return this.toString().split('.').reverse().join('.') + '.in-addr.arpa';
     }
@@ -317,9 +336,39 @@ class IPv6 extends Address {
     }
 
     compact() {
-        // removes zeros octets from middle and replace it with '::'
         let ip = this.toString();
-        return ip.replace(/(^|:)0{1,4}(?=(:|$))/g, '::').replace(/:{2,}/, '::');
+        let parts = ip.split(':');
+        let zeroGroups = [];
+        let currentGroup = [];
+
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i] === '0') {
+                currentGroup.push(i);
+            } else {
+                if (currentGroup.length > 0) {
+                    zeroGroups.push(currentGroup);
+                    currentGroup = [];
+                }
+            }
+        }
+        if (currentGroup.length > 0) {
+            zeroGroups.push(currentGroup);
+        }
+
+        let longestGroup = zeroGroups.reduce((longest, group) => group.length > longest.length ? group : longest, []);
+
+        if (longestGroup.length > 0) {
+            parts.splice(longestGroup[0], longestGroup.length, '');
+        }
+
+        parts = parts.map(part => part.replace(/^0{1,3}/, ''));
+
+        let compactedIp = parts.join(':').replace(/:{2,}/, '::');
+
+        if (compactedIp.endsWith(':')) {
+            compactedIp += ':';
+        }
+        return compactedIp;
     }
 
     toInteger(ip) {
@@ -333,7 +382,53 @@ class IPv6 extends Address {
         for (let i = 0; i < 32; i += 4) {
             hextets.push(hexString.slice(i, i + 4).replace(/^0{1,3}/, ''));
         }
-        return hextets.join(':').replace(/:{2,}/, '::');
+        let zeroGroups = [];
+        let currentGroup = [];
+
+        for (let i = 0; i < hextets.length; i++) {
+            if (hextets[i] === '0') {
+                currentGroup.push(i);
+            } else {
+                if (currentGroup.length > 0) {
+                    zeroGroups.push(currentGroup);
+                    currentGroup = [];
+                }
+            }
+        }
+        if (currentGroup.length > 0) {
+            zeroGroups.push(currentGroup);
+        }
+
+        let longestGroup = zeroGroups.reduce((longest, group) => group.length > longest.length ? group : longest, []);
+
+        if (longestGroup.length > 0) {
+            hextets.splice(longestGroup[0], longestGroup.length, '');
+        }
+
+        hextets = hextets.map(part => part.replace(/^0{1,3}/, ''));
+
+        let compactedIp = hextets.join(':').replace(/:{2,}/, '::');
+
+        if (compactedIp.endsWith(':')) {
+            compactedIp += ':';
+        }
+        return compactedIp;
+    }
+
+    toCompleteString() {
+        let hexString = this.address.toString(16).padStart(32, '0');
+        let hextets = [];
+        for (let i = 0; i < 32; i += 4) {
+            hextets.push(hexString.slice(i, i + 4));
+        }
+        let prefixLength = Number(this.prefixLength);
+        let networkPart = hextets.slice(0, Math.ceil(prefixLength / 16)).join(':');
+        let addressPart = hextets.slice(Math.ceil(prefixLength / 16)).join(':');
+        if (networkPart && !networkPart.endsWith(':')) {
+            networkPart += ':';
+        }
+
+        return `<span class="network">${networkPart}</span><span class="address">${addressPart}</span>/${prefixLength}`;
     }
 
     get arpaFormat() {
@@ -410,25 +505,25 @@ function displayResults(input) {
             <tr>
                 <td>Network</td>
                 <td data-type="network">
-                    <a onclick="copy(this)" class="copy">${ipObj.networkAddress.toString()}</a>
+                    <a onclick="copy(this)" class="copy">${ipObj.networkAddress.toCompleteString()}</a>
                 </td>
             </tr>
             <tr>
                 <td>Broadcast</td>
                 <td data-type="address">
-                    <a onclick="copy(this)" class="copy">${ipObj.networkAddress.toString()}</a>
+                    <a onclick="copy(this)" class="copy">${ipObj.networkAddress.toCompleteString()}</a>
                 </td>
             </tr>
             <tr>
                 <td>Network range</td>
                 <td data-type="range">
-                    <a onclick="copy(this)" class="copy"><span class="ip-range">${ipObj.networkAddress.toString()}</span> - <span>${ipObj.broadcastAddress.toString()}</span></a>
+                    <a onclick="copy(this)" class="copy"><span class="ip-range">${ipObj.networkAddress.toCompleteString()}</span> <span>${ipObj.broadcastAddress.toCompleteString()}</span></a>
                 </td>
             </tr>
             <tr>
                 <td>Hosts Addresses</td>
                 <td data-type="range">
-                    <a onclick="copy(this)" class="copy"><span class="ip-range">${ipObj.firstAddress.toString()}</span> - <span>${ipObj.lastAddress.toString()}</span></a>
+                    <a onclick="copy(this)" class="copy"><span class="ip-range">${ipObj.firstAddress.toCompleteString()}</span> <span>${ipObj.lastAddress.toCompleteString()}</span></a>
                 </td>
             </tr>
             <tr>
