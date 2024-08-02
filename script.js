@@ -426,8 +426,10 @@ const history = new History();
 function fillForm(value) {
     value = value || this.value;
     if (!value) return;
+
     document.getElementById('ipAddress').value = value;
-    document.getElementById('ipForm').dispatchEvent(new Event('submit'));
+    let results = analyzeIp(value);
+    displayResults(results);
     updateHistory();
 }
 
