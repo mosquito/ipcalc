@@ -132,6 +132,7 @@ class Address {
     }
 
     get broadcastAddress() {
+        if (this.prefixLength === this.totalBits) return this;
         return new this.constructor((
             this.address | (
                 ~this.prefixToMask(this.prefixLength, this.totalBits) &
@@ -141,6 +142,7 @@ class Address {
     }
 
     get networkAddress() {
+        if (this.prefixLength === this.totalBits) return this;
         return new this.constructor(
             this.address & this.prefixToMask(this.prefixLength, this.totalBits),
             this.prefixLength
@@ -148,6 +150,7 @@ class Address {
     }
 
     get firstAddress() {
+        if (this.prefixLength === this.totalBits) return this;
         return new this.constructor(
             this.networkAddress.address + 1n,
             this.prefixLength
@@ -155,6 +158,7 @@ class Address {
     }
 
     get lastAddress() {
+        if (this.prefixLength === this.totalBits) return this;
         return new this.constructor(
             this.broadcastAddress.address - 1n,
             this.prefixLength
@@ -279,17 +283,32 @@ class IPv4 extends Address {
 
     toCompleteString() {
         let octets = [
-            String(this.address >> 24n & 255n).padStart(3, '0'),
-            String(this.address >> 16n & 255n).padStart(3, '0'),
-            String(this.address >> 8n & 255n).padStart(3, '0'),
-            String(this.address & 255n).padStart(3, '0')
+            (this.address >> 24n & 255n).toString().padStart(3, '0'),
+            (this.address >> 16n & 255n).toString().padStart(3, '0'),
+            (this.address >> 8n & 255n).toString().padStart(3, '0'),
+            (this.address & 255n).toString().padStart(3, '0')
         ];
 
         let prefixLength = Number(this.prefixLength);
-        let networkPart = octets.slice(0, Math.ceil(prefixLength / 8)).join('.') + (prefixLength % 8 === 0 ? '.' : '');
-        let addressPart = octets.slice(Math.ceil(prefixLength / 8)).join('.');
+        let completeNetworkOctets = Math.floor(prefixLength / 8);
+        let partialOctetBits = prefixLength % 8;
 
-        return `<span class="network">${networkPart}</span><span class="address">${addressPart}</span>/${prefixLength}`;
+        let result = '';
+        for (let i = 0; i < 4; i++) {
+            if (i > 0) result += '.';
+            if (i < completeNetworkOctets) {
+                result += `<span class="network">${octets[i]}</span>`;
+            } else if (i === completeNetworkOctets && partialOctetBits > 0) {
+                let mask = (255 << (8 - partialOctetBits)) & 255;
+                let networkPart = (Number(octets[i]) & mask).toString().padStart(3, '0');
+                let addressPart = (Number(octets[i]) & ~mask).toString().padStart(3, '0');
+                result += `<span class="network">${networkPart.slice(0, -addressPart.length)}</span><span class="address">${addressPart}</span>`;
+            } else {
+                result += `<span class="address">${octets[i]}</span>`;
+            }
+        }
+
+        return `${result}/${prefixLength}`;
     }
 
     get arpaFormat() {
@@ -422,13 +441,23 @@ class IPv6 extends Address {
             hextets.push(hexString.slice(i, i + 4));
         }
         let prefixLength = Number(this.prefixLength);
-        let networkPart = hextets.slice(0, Math.ceil(prefixLength / 16)).join(':');
-        let addressPart = hextets.slice(Math.ceil(prefixLength / 16)).join(':');
-        if (networkPart && !networkPart.endsWith(':')) {
-            networkPart += ':';
-        }
+        let completeNetworkHextets = Math.floor(prefixLength / 16);
+        let partialHextetBits = prefixLength % 16;
 
-        return `<span class="network">${networkPart}</span><span class="address">${addressPart}</span>/${prefixLength}`;
+        let result = '';
+        for (let i = 0; i < 8; i++) {
+            if (i > 0) result += ':';
+            if (i < completeNetworkHextets) {
+                result += `<span class="network">${hextets[i]}</span>`;
+            } else if (i === completeNetworkHextets && partialHextetBits > 0) {
+                let networkPart = hextets[i].slice(0, Math.ceil(partialHextetBits / 4));
+                let addressPart = hextets[i].slice(Math.ceil(partialHextetBits / 4));
+                result += `<span class="network">${networkPart}</span><span class="address">${addressPart}</span>`;
+            } else {
+                result += `<span class="address">${hextets[i]}</span>`;
+            }
+        }
+        return `${result}/${prefixLength}`;
     }
 
     get arpaFormat() {
