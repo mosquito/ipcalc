@@ -161,7 +161,7 @@ body {
     text-align: left;
     border-bottom: 1px solid #3E3D32;
     white-space: nowrap;
-    position: relative; /* Add this */
+    position: relative;
 }
 
 .result td:not(:first-child) {
@@ -343,7 +343,6 @@ button:hover {
     color: #75715E;
 }
 
-/* Button styling */
 .result td button {
     padding: 8px 15px;
     background-color: #66D9EF;
