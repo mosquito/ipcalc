@@ -422,7 +422,7 @@ function displayResults(input) {
             <tr>
                 <td>Network range</td>
                 <td data-type="range">
-                    <a onclick="copy(this)" class="copy"><span class="ip-range">${ipObj.networkAddress.toString()}</span><span>${ipObj.broadcastAddress.toString()}</span></a>
+                    <a onclick="copy(this)" class="copy"><span class="ip-range">${ipObj.networkAddress.toString()}</span> - <span>${ipObj.broadcastAddress.toString()}</span></a>
                 </td>
             </tr>
             <tr>
