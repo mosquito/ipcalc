@@ -4,76 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IPCalc</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #272822;
-            color: #F8F8F2;
-            padding: 20px;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .container {
-            text-align: center;
-            width: 100%;
-            max-width: 1000px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .result {
-            margin-top: 20px;
-            width: 100%;
-        }
-        .result table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .result th, .result td {
-            padding: 10px;
-            text-align: left;
-        }
-        .result th {
-            background-color: #49483E;
-            color: #A6E22E;
-            font-family: Arial, sans-serif;
-        }
-        .result td {
-            background-color: #3E3D32;
-            font-family: 'Courier New', Courier, monospace;
-        }
-        .result tr:nth-child(even) td {
-            background-color: #3B3A32;
-        }
-        .form-group input {
-            padding: 10px;
-            width: calc(100% - 20px);
-            border: 1px solid #49483E;
-            background-color: #3E3D32;
-            color: #F8F8F2;
-            border-radius: 3px;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #66D9EF;
-            color: #272822;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #A6E22E;
-        }
-        .description {
-            text-align: left;
-            margin-top: 20px;
-            line-height: 1.5;
-            max-width: 800px;
-            width: 100%;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
@@ -81,11 +12,12 @@
         <form id="ipForm">
             <div class="form-group">
                 <label for="ipAddress">IP Address/Subnet:</label>
-                <input type="text" id="ipAddress" name="ipAddress" placeholder="e.g. 192.168.0.0 or 2000::" required>
+                <input type="text" id="ipAddress" name="ipAddress" placeholder="e.g. 192.168.0.0 or 2000::/3" required>
             </div>
             <button type="submit" hidden></button>
         </form>
         <div id="results" class="result"></div>
+        <div id="history"></div>
         <div class="description">
             <h2>How to use IPCalc</h2>
             <p>Enter an IP address along with its subnet in the input field. The format should be in IPv4 or IPv6 notation.</p>
@@ -94,244 +26,32 @@
                 <li><code>192.168.0.0</code> for an IPv4 address (default subnet /24)</li>
                 <li><code>2000::</code> for an IPv6 address (default subnet /64)</li>
             </ul>
-            <p>Click the "Analyze" button to see detailed information about the IP address and its subnet.</p>
+            <p>Press enter to see detailed information about the IP address and its subnet.</p>
+
+            <h2>Motivation for Creating this tool</h2>
+            <ul>
+                <li>Everything works directly in the browser.</li>
+                <li>Supports IPv6 on par with IPv4.</li>
+                <li>No backend, meaning no hidden data collection or selling data to third parties.</li>
+            </ul>
+
+            <h2>Output Description</h2>
+            <ul>
+                <li><strong>Address</strong>: The input IP address with its subnet. Useful for verifying the entered data.</li>
+                <li><strong>Type</strong>: The type of the IP address (e.g., Private, Global Unicast). Helps in understanding the nature of the IP address.</li>
+                <li><strong>Network</strong>: The network address with the prefix length. Important for network planning and analysis.</li>
+                <li><strong>Broadcast</strong>: The broadcast address for the network. Useful for network communication purposes.</li>
+                <li><strong>Network range</strong>: The range of addresses within the network. Helps in determining the scope of the network.</li>
+                <li><strong>Hosts Addresses</strong>: The range of usable host addresses within the network. Important for assigning IPs to devices.</li>
+                <li><strong>Total IP addresses</strong>: The total number of addresses in the subnet. Useful for capacity planning.</li>
+                <li><strong>Integer ID</strong>: The integer representation of the IP address. Useful for certain technical operations.</li>
+                <li><strong>Hexadecimal ID</strong>: The hexadecimal representation of the IP address. Useful for debugging and technical analysis.</li>
+                <li><strong>Dotted decimal ID</strong>: The standard dotted decimal format for IPv4 or colon-separated format for IPv6. Useful for readability.</li>
+                <li><strong>Base 85 ID</strong>: The Base85 encoded representation of the IP address. Used in some specific applications and protocols.</li>
+                <li><strong>arpa Format</strong>: The reverse DNS lookup format. Useful for DNS configuration and troubleshooting.</li>
+            </ul>
         </div>
     </div>
-    <script>
-        class Address {
-            constructor(ip, prefixLength) {
-                this.prefixLength = BigInt(prefixLength);
-                this.address = this.toInteger(ip);
-                this.totalBits = this.getTotalBits();
-                this.networkAddress = this.address & this.prefixToMask(this.prefixLength, this.totalBits);
-                const broadcastMask = ~this.prefixToMask(this.prefixLength, this.totalBits) & this.prefixToMask(this.totalBits, this.totalBits);
-                this.broadcastAddress = this.address | broadcastMask;
-                this.firstAddress = this.networkAddress + 1n;
-                this.lastAddress = this.broadcastAddress - 1n;
-            }
-
-            toInteger(ip) {
-                throw new Error("Method 'toInteger(ip)' must be implemented.");
-            }
-
-            toString(int) {
-                throw new Error("Method 'toString(int)' must be implemented.");
-            }
-
-            prefixToMask(prefixLength, totalBits) {
-                return (1n << totalBits) - (1n << (totalBits - prefixLength));
-            }
-
-            getLength() {
-                return 1n << (this.totalBits - this.prefixLength);
-            }
-
-            getHexId() {
-                return '0x' + this.address.toString(16).padStart(Number(this.totalBits / 4n), '0');
-            }
-
-            getArpaFormat() {
-                throw new Error("Method 'getArpaFormat()' must be implemented.");
-            }
-
-            getType() {
-                throw new Error("Method 'getType()' must be implemented.");
-            }
-
-            getBase85Id() {
-                const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
-                let int = this.address;
-                let result = '';
-                while (int > 0) {
-                    result = chars[int % 85n] + result;
-                    int = int / 85n;
-                }
-                return result;
-            }
-        }
-
-        class IPv4 extends Address {
-            static TYPE_LIST = [
-                ["Private", "10.0.0.0", "10.255.255.255"],
-                ["Private", "172.16.0.0", "172.31.255.255"],
-                ["Private", "192.168.0.0", "192.168.255.255"],
-                ["Loopback", "127.0.0.0", "127.255.255.255"],
-                ["Link-local", "169.254.0.0", "169.254.255.255"],
-                ["Multicast", "224.0.0.0", "239.255.255.255"],
-                ["Broadcast", "255.255.255.255", "255.255.255.255"],
-                ["Shared Address Space", "100.64.0.0", "100.127.255.255"],
-                ["Global Unicast", "0.0.0.0", "223.255.255.255"]
-            ].map(([type, start, end]) => [type, IPv4.toBigInt(start), IPv4.toBigInt(end)]);
-
-            getTotalBits() {
-                return BigInt(32);
-            }
-
-            toInteger(ip) {
-                return ip.split('.').reduce((int, octet) => int * 256n + BigInt(octet), 0n);
-            }
-
-            toString(int) {
-                return [
-                    Number(int >> 24n & 255n),
-                    Number(int >> 16n & 255n),
-                    Number(int >> 8n & 255n),
-                    Number(int & 255n)
-                ].join('.');
-            }
-
-            getArpaFormat() {
-                return this.toString(this.address).split('.').reverse().join('.') + '.in-addr.arpa';
-            }
-
-            getType() {
-                for (const [type, start, end] of IPv4.TYPE_LIST) {
-                    if (this.networkAddress >= start && this.broadcastAddress <= end) {
-                        return type;
-                    }
-                }
-                return "Unknown";
-            }
-
-            static toBigInt(ip) {
-                return ip.split('.').reduce((int, octet) => int * 256n + BigInt(octet), 0n);
-            }
-        }
-
-        class IPv6 extends Address {
-            static TYPE_LIST = [
-                ["Global Unicast", "2000::", "3fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"],
-                ["Link-local", "fe80::", "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff"],
-                ["Unique Local", "fc00::", "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"],
-                ["Multicast", "ff00::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"],
-                ["Loopback", "::1", "::1"],
-                ["Reserved", "::", "::"],
-                ["Reserved", "::ffff:0:0", "::ffff:ffff:ffff"],
-                ["Reserved", "4000::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"]
-            ].map(([type, start, end]) => [type, IPv6.toBigInt(start), IPv6.toBigInt(end)]);
-
-            getTotalBits() {
-                return BigInt(128);
-            }
-
-            expandIPv6(ip) {
-                const parts = ip.split('::');
-                let head = parts[0].split(':').map(part => part || '0');
-                let tail = parts[1] ? parts[1].split(':').map(part => part || '0') : [];
-                let middle = Array(8 - head.length - tail.length).fill('0');
-                return [...head, ...middle, ...tail].join(':');
-            }
-
-            toInteger(ip) {
-                ip = this.expandIPv6(ip);
-                return ip.split(':').reduce((int, hextet) => int * 65536n + BigInt(parseInt(hextet, 16)), 0n);
-            }
-
-            toString(int) {
-                let hexString = int.toString(16).padStart(32, '0');
-                let hextets = [];
-                for (let i = 0; i < 32; i += 4) {
-                    hextets.push(hexString.slice(i, i + 4));
-                }
-                return hextets.join(':').replace(/(^|:)0{1,3}(?=0+(:|$))/g, '$1').replace(/:{2,}/, '::');
-            }
-
-            getArpaFormat() {
-                let reversed = this.toString(this.address).split(':').map(part => part.padStart(4, '0')).join('').split('').reverse().join('.');
-                return `${reversed}.ip6.arpa`;
-            }
-
-            getType() {
-                for (const [type, start, end] of IPv6.TYPE_LIST) {
-                    if (this.networkAddress >= start && this.broadcastAddress <= end) {
-                        return type;
-                    }
-                }
-                return "Unknown";
-            }
-
-            static toBigInt(ip) {
-                ip = IPv6.prototype.expandIPv6(ip);
-                return ip.split(':').reduce((int, hextet) => int * 65536n + BigInt(parseInt(hextet, 16)), 0n);
-            }
-        }
-
-        function parseIp(input) {
-            let [ip, prefixLength] = input.split('/');
-            if (!prefixLength) {
-                prefixLength = ip.includes(':') ? 64 : 24;
-            } else {
-                prefixLength = parseInt(prefixLength, 10);
-            }
-
-            if (ip.includes(':')) {
-                return new IPv6(ip, prefixLength);
-            } else if (ip.includes('.')) {
-                return new IPv4(ip, prefixLength);
-            } else {
-                throw new Error('Invalid IP address format');
-            }
-        }
-
-         function displayResults(results) {
-            let resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = `
-                <table>
-                    <tr><th>Field</th><th>Value</th></tr>
-                    <tr><td>Address</td><td>${results.ip}</td></tr>
-                    <tr><td>Type</td><td>${results.type}</td></tr>
-                    <tr><td>Network</td><td>${results.network}</td></tr>
-                    <tr><td>Broadcast</td><td>${results.broadcast}</td></tr>
-                    <tr><td>Network range</td><td>${results.networkRange}</td></tr>
-                    <tr><td>Hosts Addresses</td><td>${results.firstAddress} - ${results.lastAddress}</td></tr>
-                    <tr><td>Total IP addresses</td><td>${results.totalAddresses}</td></tr>
-                    <tr><td>Integer ID</td><td>${results.integerId}</td></tr>
-                    <tr><td>Hexadecimal ID</td><td>${results.hexId}</td></tr>
-                    <tr><td>Dotted decimal ID</td><td>${results.dottedDecimalId}</td></tr>
-                    <tr><td>Base 85 ID</td><td>${results.base85Id}</td></tr>
-                    <tr><td>arpa Format</td><td>${results.arpaFormat}</td></tr>
-                </table>
-            `;
-        }
-
-        function analyzeIp(input) {
-            let ipObj = parseIp(input);
-            return {
-                ip: `${ipObj.toString(ipObj.address)}/${Number(ipObj.prefixLength)}`,
-                type: ipObj.getType(),
-                network: `${ipObj.toString(ipObj.networkAddress)}/${Number(ipObj.prefixLength)}`,
-                broadcast: ipObj.toString(ipObj.broadcastAddress),
-                networkRange: `${ipObj.toString(ipObj.networkAddress)} - ${ipObj.toString(ipObj.broadcastAddress)}`,
-                firstAddress: ipObj.toString(ipObj.firstAddress),
-                lastAddress: ipObj.toString(ipObj.lastAddress),
-                totalAddresses: ipObj.getLength().toString(),
-                integerId: ipObj.address.toString(),
-                hexId: ipObj.getHexId(),
-                dottedDecimalId: ipObj.toString(ipObj.address),
-                base85Id: ipObj.getBase85Id(),
-                arpaFormat: ipObj.getArpaFormat()
-            };
-        }
-
-        document.getElementById('ipForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const input = document.getElementById('ipAddress');
-
-            try {
-                let results = analyzeIp(input.value);
-                displayResults(results);
-                input.value = results.ip;
-                localStorage.address = results.ip;
-                input.scrollIntoView({ behavior: 'smooth' });
-            } catch (error) {
-                alert(error.message);
-            }
-        });
-
-        if (localStorage.address) {
-            document.getElementById('ipAddress').value = localStorage.address;
-        }
-        document.getElementById('ipAddress').focus()
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,246 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #272822;
+    color: #F8F8F2;
+    padding: 20px;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.container {
+    text-align: center;
+    width: 100%;
+    max-width: 1000px;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+
+.result table {
+    width: 100%;
+    border-spacing: 0;
+    border: 1px solid #3E3D32;
+    table-layout: fixed;
+}
+
+.result th:first-child,
+.result td:first-child {
+    position: sticky;
+    left: 0;
+    background-color: #272822;
+    z-index: 1;
+    width: 150px;
+}
+
+.result th:first-child {
+    z-index: 2;
+}
+
+.result th, .result td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #3E3D32;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.result th:not(:first-child),
+.result td:not(:first-child) {
+    width: calc((100% - 150px) / 11);
+}
+
+.result th {
+    background-color: #272822;
+    color: #F92672;
+    font-weight: bold;
+}
+
+.result td:first-child {
+    color: #66D9EF;
+    font-weight: bold;
+}
+
+.result td:not(:first-child) {
+    background-color: #3E3D32;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.result td a {
+    text-decoration: none;
+    font-weight: bold;
+}
+.result td[data-type="address"] a { color: #E6DB74; }
+.result td[data-type="type"] a { color: #A6E22E; }
+.result td[data-type="network"] a { color: #FD971F; }
+.result td[data-type="range"] a { color: #AE81FF; }
+.result td[data-type="number"] a { color: #F92672; }
+.result td[data-type="id"] a { color: #66D9EF; }
+
+.result tr:nth-child(even) td:not(:first-child) {
+    background-color: #35342A;
+}
+
+.result {
+    overflow-x: auto;
+}
+
+.result table {
+    min-width: 100%;
+}
+
+.result th, .result td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #3E3D32;
+    white-space: nowrap;
+    position: relative; /* Add this */
+}
+
+.result td:not(:first-child) {
+    overflow: visible;
+}
+
+.form-group input {
+    padding: 10px;
+    width: calc(100% - 20px);
+    border: 1px solid #49483E;
+    background-color: #3E3D32;
+    color: #F8F8F2;
+    border-radius: 3px;
+}
+button {
+    padding: 10px 15px;
+    background-color: #66D9EF;
+    color: #272822;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+button:hover {
+    background-color: #A6E22E;
+}
+.description {
+    text-align: left;
+    margin-top: 20px;
+    line-height: 1.5;
+    max-width: 800px;
+    width: 100%;
+}
+
+
+#history {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 20px 0;
+}
+
+
+#history ul {
+    display: inline-flex;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#history li {
+    background-color: #3E3D32;
+    border-radius: 5px;
+    padding: 10px 15px;
+    margin-right: 10px;
+    display: inline-block;
+}
+
+#history a {
+    color: #F8F8F2;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#history a:hover {
+    color: #A6E22E;
+}
+
+.ip-range {
+    display: inline-flex;
+    flex-wrap: wrap;
+}
+
+.ip-range span {
+    white-space: nowrap;
+}
+
+.ip-range span:first-child::after {
+    content: " -";
+    white-space: pre;
+}
+
+@media (max-width: 600px) {
+    .ip-range {
+        flex-direction: column;
+    }
+
+    .ip-range span:first-child::after {
+        content: "";
+    }
+}
+
+
+.copy {
+    position: relative;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.copy::after {
+    content: "Click to copy";
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #272822;
+    color: #F8F8F2;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 10;
+}
+
+.copy:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+.copy.copied::after {
+    content: "Copied!";
+    background-color: #A6E22E;
+    color: #272822;
+}
+
+.copy::before {
+    content: "";
+    position: absolute;
+    bottom: 75%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #272822;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 10;
+}
+
+.copy:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+.copy.copied::before {
+    border-top-color: #A6E22E;
+}
