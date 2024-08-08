@@ -146,11 +146,9 @@ class Address {
     }
 
     get networkAddress() {
-        if (this.prefixLength === this.totalBits) return this;
-        return new this.constructor(
-            this.address & this.prefixToMask(this.prefixLength, this.totalBits),
-            this.prefixLength
-        );
+        const mask = this.prefixToMask(this.prefixLength, this.totalBits);
+        const networkAddr = this.address & mask;
+        return new this.constructor(networkAddr, this.prefixLength);
     }
 
     get firstAddress() {
@@ -182,7 +180,12 @@ class Address {
     }
 
     prefixToMask(prefixLength, totalBits) {
-        return (1n << totalBits) - (1n << (totalBits - prefixLength));
+        // return (1n << totalBits) - (1n << (totalBits - prefixLength));
+        if (prefixLength === 0) return 0n;
+        if (prefixLength === totalBits) return (1n << BigInt(totalBits)) - 1n;
+
+        const shift = BigInt(totalBits - prefixLength);
+        return ((1n << BigInt(totalBits)) - 1n) ^ ((1n << shift) - 1n);
     }
 
     get length() {
@@ -294,6 +297,8 @@ class IPv4 extends Address {
         ];
 
         let prefixLength = Number(this.prefixLength);
+        let networkMask = this.prefixToMask(this.prefixLength, this.totalBits);
+        let networkAddress = this.address & networkMask;
 
         let result = '<span class="network">';
         let networkBitsLeft = prefixLength;
@@ -301,27 +306,29 @@ class IPv4 extends Address {
         for (let i = 0; i < 4; i++) {
             if (i > 0) result += '.';
 
+            let networkOctet = ((networkAddress >> (24n - BigInt(i) * 8n)) & 255n).toString().padStart(3, '0');
+            let addressOctet = octets[i];
+
             if (networkBitsLeft >= 8) {
-                result += octets[i];
+                result += networkOctet;
                 networkBitsLeft -= 8;
             } else if (networkBitsLeft > 0) {
-                let mask = 256 - (1 << (8 - networkBitsLeft));
-                let networkPart = (parseInt(octets[i]) & mask).toString().padStart(3, '0');
-                let addressPart = (parseInt(octets[i]) & ~mask).toString().padStart(3, '0');
-                result += `${networkPart.slice(0, -addressPart.length)}</span><span class="address">${addressPart}`;
+                result += networkOctet.slice(0, networkBitsLeft);
+                result += '</span><span class="address">';
+                result += addressOctet.slice(networkBitsLeft);
                 networkBitsLeft = 0;
             } else {
                 if (networkBitsLeft === 0) {
                     result += '</span><span class="address">';
                     networkBitsLeft = -1; // Чтобы не добавлять закрывающий тег повторно
                 }
-                result += octets[i];
+                result += addressOctet;
             }
         }
 
         result += '</span>';
 
-        return `${result}/${prefixLength}`;
+        return `${result}/${this.prefixLength}`;
     }
 
     get arpaFormat() {
@@ -771,7 +778,7 @@ function fillForm(value) {
 async function main() {
     await history.init();
     const urlAddress = getAddressFromURL();
-    if (urlAddress) { fillForm(urlAddress); } else { fillForm(await history.getLast()); }
+    if (urlAddress) { fillForm(urlAddress); } else { fillForm((await history.getLast()).value); }
     document.getElementById('ipAddress').focus()
 }
 
