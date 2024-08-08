@@ -137,12 +137,9 @@ class Address {
 
     get broadcastAddress() {
         if (this.prefixLength === this.totalBits) return this;
-        return new this.constructor((
-            this.address | (
-                ~this.prefixToMask(this.prefixLength, this.totalBits) &
-                this.prefixToMask(this.totalBits, this.totalBits)
-            )
-        ), this.prefixLength);
+        const mask = this.prefixToMask(this.prefixLength, this.totalBits);
+        const broadcastAddr = this.address | (BigInt.asUintN(32, ~mask));
+        return new IPv4(broadcastAddr, this.prefixLength);
     }
 
     get networkAddress() {
@@ -180,10 +177,8 @@ class Address {
     }
 
     prefixToMask(prefixLength, totalBits) {
-        // return (1n << totalBits) - (1n << (totalBits - prefixLength));
         if (prefixLength === 0) return 0n;
         if (prefixLength === totalBits) return (1n << BigInt(totalBits)) - 1n;
-
         const shift = BigInt(totalBits - prefixLength);
         return ((1n << BigInt(totalBits)) - 1n) ^ ((1n << shift) - 1n);
     }
@@ -297,36 +292,102 @@ class IPv4 extends Address {
         ];
 
         let prefixLength = Number(this.prefixLength);
-        let networkMask = this.prefixToMask(this.prefixLength, this.totalBits);
-        let networkAddress = this.address & networkMask;
+        let fullAddress = octets.join('.');
+        let splitIndex;
 
-        let result = '<span class="network">';
-        let networkBitsLeft = prefixLength;
-
-        for (let i = 0; i < 4; i++) {
-            if (i > 0) result += '.';
-
-            let networkOctet = ((networkAddress >> (24n - BigInt(i) * 8n)) & 255n).toString().padStart(3, '0');
-            let addressOctet = octets[i];
-
-            if (networkBitsLeft >= 8) {
-                result += networkOctet;
-                networkBitsLeft -= 8;
-            } else if (networkBitsLeft > 0) {
-                result += networkOctet.slice(0, networkBitsLeft);
-                result += '</span><span class="address">';
-                result += addressOctet.slice(networkBitsLeft);
-                networkBitsLeft = 0;
-            } else {
-                if (networkBitsLeft === 0) {
-                    result += '</span><span class="address">';
-                    networkBitsLeft = -1; // Чтобы не добавлять закрывающий тег повторно
-                }
-                result += addressOctet;
-            }
+        switch (prefixLength) {
+            case 32:
+                splitIndex = 15;
+                break;
+            case 31:
+                splitIndex = 14;
+                break;
+            case 30:
+                splitIndex = 13;
+                break;
+            case 29:
+                splitIndex = 13;
+                break;
+            case 28:
+                splitIndex = 13;
+                break;
+            case 27:
+                splitIndex = 13;
+                break;
+            case 26:
+                splitIndex = 13;
+                break;
+            case 25:
+                splitIndex = 11;
+                break;
+            case 24:
+                splitIndex = 11;
+                break;
+            case 23:
+                splitIndex = 10;
+                break;
+            case 22:
+                splitIndex = 10;
+                break;
+            case 21:
+                splitIndex = 9;
+                break;
+            case 20:
+                splitIndex = 9;
+                break;
+            case 19:
+                splitIndex = 9;
+                break;
+            case 18:
+                splitIndex = 8;
+                break;
+            case 17:
+                splitIndex = 8;
+                break;
+            case 16:
+                splitIndex = 8;
+                break;
+            case 15:
+                splitIndex = 6;
+                break;
+            case 14:
+                splitIndex = 5;
+                break;
+            case 13:
+                splitIndex = 5;
+                break;
+            case 12:
+                splitIndex = 5;
+                break;
+            case 11:
+                splitIndex = 5;
+                break;
+            case 10:
+                splitIndex = 5;
+                break;
+            case 9:
+                splitIndex = 4;
+                break;
+            case 8:
+                splitIndex = 4;
+                break;
+            case 7:
+                splitIndex = 2;
+                break;
+            case 6:
+                splitIndex = 2;
+                break;
+            case 5:
+                splitIndex = 2;
+                break;
+            default:
+                splitIndex = 0;
         }
 
-        result += '</span>';
+        let networkPart = fullAddress.slice(0, splitIndex);
+        let addressPart = fullAddress.slice(splitIndex);
+
+        let result = `<span class="network">${networkPart}</span><span class="address">${addressPart}</span>`;
 
         return `${result}/${this.prefixLength}`;
     }
@@ -562,7 +623,7 @@ function displayResults(input) {
             <tr>
                 <td>Address</td>
             <td data-type="address">
-                <a onclick="copy(this)" class="copy">${ipObj.toString()}/${ipObj.prefixLength}</a>
+                <a onclick="copy(this)" class="copy">${ipObj.toCompleteString()}</a>
             </td>
             </tr>
             <tr>
@@ -580,7 +641,7 @@ function displayResults(input) {
             <tr>
                 <td>Broadcast</td>
                 <td data-type="address">
-                    <a onclick="copy(this)" class="copy">${ipObj.networkAddress.toCompleteString()}</a>
+                    <a onclick="copy(this)" class="copy">${ipObj.broadcastAddress.toCompleteString()}</a>
                 </td>
             </tr>
             <tr>
