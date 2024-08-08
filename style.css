@@ -23,7 +23,6 @@ body {
     padding: 20px;
     margin-bottom: 30px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    width: 100%;
 }
 
 .visual-block h2 {
@@ -37,7 +36,6 @@ body {
 .visual-block:last-child {
     margin-bottom: 0;
 }
-
 
 .form-group {
     position: relative;
@@ -77,6 +75,10 @@ body {
     border-width: 5px;
     border-style: solid;
     border-color: #F92672 transparent transparent transparent;
+}
+
+.result {
+    overflow-x: auto;
 }
 
 .result table {
@@ -268,17 +270,6 @@ button:hover {
     white-space: nowrap;
 }
 
-@media (max-width: 600px) {
-    .ip-range {
-        flex-direction: column;
-    }
-
-    .ip-range span:first-child::after {
-        content: "";
-    }
-}
-
-
 .copy {
     position: relative;
     cursor: pointer;
@@ -404,4 +395,80 @@ button:hover {
 
 #checkResult.warning {
     color: #FD971F;
+}
+
+@media (max-width: 600px) {
+    body {
+        font-size: 0.7em;
+        padding: 0;
+        margin: 5px;
+    }
+
+    .visual-block {
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+
+    .result table, .result thead, .result tbody, .result th, .result td, .result tr {
+        display: block;
+    }
+
+    .result th {
+        display: none;
+    }
+
+    .result thead tr {
+        display: none;
+    }
+
+    .result tr {
+        overflow: hidden;
+    }
+
+    .result td {
+        text-align: right;
+        position: relative;
+    }
+
+    .result td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 50%;
+        padding-left: 10px;
+        font-weight: bold;
+        text-align: left;
+    }
+
+    .result td:first-child {
+        background-color: #272822;
+        color: #7e9187;
+        font-weight: bold;
+        text-align: center;
+        width: 100%;
+        padding: 5px;
+    }
+
+    .result td:last-child {
+        background-color: #373832;
+        color: #66D9EF;
+        font-weight: bold;
+        text-align: left;
+        width: 100%;
+        padding: 5px;
+    }
+
+    .result tr:last-child td {
+        padding-top: 5px;
+        border-top: 2px solid #3E3D32;
+    }
+
+    .result tr:nth-child(even) td:not(:first-child) {
+        background-color: #373832;
+    }
+
+    .ip-range {
+        wrap-option: wrap;
+        margin: 0;
+    }
 }

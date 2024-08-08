@@ -137,9 +137,11 @@ class Address {
 
     get broadcastAddress() {
         if (this.prefixLength === this.totalBits) return this;
-        const mask = this.prefixToMask(this.prefixLength, this.totalBits);
-        const broadcastAddr = this.address | (BigInt.asUintN(32, ~mask));
-        return new IPv4(broadcastAddr, this.prefixLength);
+        return new this.constructor((
+            this.address | (
+            ~this.prefixToMask(this.prefixLength, this.totalBits) &
+            this.prefixToMask(this.totalBits, this.totalBits)
+        )), this.prefixLength);
     }
 
     get networkAddress() {
