@@ -883,16 +883,25 @@ async function updateHistory() {
 }
 
 async function myIPv4address() {
-    const response = await fetch('https://ipv4-check-perf.radar.cloudflare.com/api/info');
-    const data = await response.json();
-    return data.ip_address;
+    try {
+        const response = await fetch('https://ipv4-check-perf.radar.cloudflare.com/api/info');
+        const data = await response.json();
+        return data.ip_address;
+    } catch (error) {
+        console.error('Error fetching IPv4 address:', error);
+        return null;
+    }
 }
 
 async function myIPv6address() {
-    // fetch info from https://ipv6-check-perf.radar.cloudflare.com/api/info
-    const response = await fetch('https://ipv6-check-perf.radar.cloudflare.com/api/info');
-    const data = await response.json();
-    return data.ip_address;
+    try {
+        const response = await fetch('https://ipv6-check-perf.radar.cloudflare.com/api/info');
+        const data = await response.json();
+        return data.ip_address;
+    } catch (error) {
+        console.error('Error fetching IPv4 address:', error);
+        return null;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', main);
