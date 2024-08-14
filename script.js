@@ -859,12 +859,12 @@ async function main() {
 
     const examples = document.getElementById('examples');
     for (const address of myAddresses) {
-        if (address) examples.innerHTML += `<li><a onclick="fillForm('${address}')">${address} (current Address)</a></li>`;
+        if (address) examples.innerHTML += `<li><a onclick="fillForm('${address}')"><code>${address}</code> (current Address)</a></li>`;
     }
-    examples.innerHTML += `<li><a onclick="fillForm('10.0.0.0/8')">Complete IPv4 address 10.0.0.0/8</a></li>`;
-    examples.innerHTML += `<li><a onclick="fillForm('2000::/3')">Complete IPv6 address with netmask 2000::/3</a></li>`;
-    examples.innerHTML += `<li><a onclick="fillForm('192.168.1.0')">192.168.1.0 (default /24)</a></li>`;
-    examples.innerHTML += `<li><a onclick="fillForm('2001:db8:1234::5')">2001:db8:1234::5 (default /64)</a></li>`;
+    examples.innerHTML += `<li><a onclick="fillForm('10.0.0.0/8')">Complete IPv4 address <code>10.0.0.0/8</code></a></li>`;
+    examples.innerHTML += `<li><a onclick="fillForm('2000::/3')">Complete IPv6 address with netmask <code>2000::/3</code></a></li>`;
+    examples.innerHTML += `<li><a onclick="fillForm('192.168.1.0')"><code>192.168.1.0</code> (default /24)</a></li>`;
+    examples.innerHTML += `<li><a onclick="fillForm('2001:db8:1234::5')"><code>2001:db8:1234::5</code> (default /64)</a></li>`;
 }
 
 
