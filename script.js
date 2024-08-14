@@ -843,24 +843,15 @@ async function main() {
         if (last !== null) urlAddress = last.value
     }
 
-    const myAddresses = await Promise.all([myIPv4address(), myIPv6address()]);
-    if (!urlAddress) {
-        for (const address of myAddresses) {
-            if (address) {
-                urlAddress = address;
-                break;
-            }
-        }
-    }
+    const ipAddress = await myIPaddress();
+    if (!urlAddress) if (ipAddress) urlAddress = ipAddress;
 
     fillForm(urlAddress);
 
     document.getElementById('ipAddress').focus()
 
     const examples = document.getElementById('examples');
-    for (const address of myAddresses) {
-        if (address) examples.innerHTML += `<li><a onclick="fillForm('${address}')"><code>${address}</code> (current Address)</a></li>`;
-    }
+    if (ipAddress) examples.innerHTML += `<li><a onclick="fillForm('${ipAddress}')"><code>${ipAddress}</code> (current Address)</a></li>`;
     examples.innerHTML += `<li><a onclick="fillForm('10.0.0.0/8')">Complete IPv4 address <code>10.0.0.0/8</code></a></li>`;
     examples.innerHTML += `<li><a onclick="fillForm('2000::/3')">Complete IPv6 address with netmask <code>2000::/3</code></a></li>`;
     examples.innerHTML += `<li><a onclick="fillForm('192.168.1.0')"><code>192.168.1.0</code> (default /24)</a></li>`;
@@ -882,22 +873,11 @@ async function updateHistory() {
     `;
 }
 
-async function myIPv4address() {
+async function myIPaddress() {
     try {
-        const response = await fetch('https://ipv4-check-perf.radar.cloudflare.com/api/info');
+        const response = await fetch('https://api64.ipify.org?format=json');
         const data = await response.json();
-        return data.ip_address;
-    } catch (error) {
-        console.error('Error fetching IPv4 address:', error);
-        return null;
-    }
-}
-
-async function myIPv6address() {
-    try {
-        const response = await fetch('https://ipv6-check-perf.radar.cloudflare.com/api/info');
-        const data = await response.json();
-        return data.ip_address;
+        return data.ip;
     } catch (error) {
         console.error('Error fetching IPv4 address:', error);
         return null;
