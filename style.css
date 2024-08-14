@@ -232,10 +232,14 @@ button:hover {
     display: inline-block;
 }
 
+a {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
 #history a {
     color: #F8F8F2;
     text-decoration: none;
-    cursor: pointer;
 }
 
 #history a:hover {

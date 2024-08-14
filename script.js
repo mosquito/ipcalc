@@ -710,7 +710,7 @@ function displayResults(input) {
                 <td>Check IP in subnet</td>
                 <td>
                     <input type="text" id="checkIpInput" placeholder="Enter IP to check">
-                    <button id="checkIpButton" onclick="checkIpInSubnet('${results.network}')">Check</button>
+                    <button id="checkIpButton">Check</button>
                     <span id="checkResult"></span>
                 </td>
             </tr>
@@ -720,35 +720,31 @@ function displayResults(input) {
     document.getElementById('checkIpInput').addEventListener('keypress', function(event) {
         if (event.key === 'Enter') {
             event.preventDefault();
-            checkIpInSubnet(results.network);
+            checkIpInSubnet(ipObj, document.getElementById('checkIpInput').value.trim());
         }
     });
 
     document.getElementById('checkIpButton').addEventListener('click', function() {
-        checkIpInSubnet(results.network);
+        checkIpInSubnet(ipObj, document.getElementById('checkIpInput').value.trim());
     });
 
     history.store(input).then(updateHistory);
 }
 
-function checkIpInSubnet(network) {
-    const ipToCheck = document.getElementById('checkIpInput').value.trim();
+function checkIpInSubnet(networkObj, ipToCheck) {
     if (!ipToCheck) {
         showCheckResult('Please enter an IP address to check', 'warning');
         return;
     }
 
-    const [networkAddress, prefixLength] = network.split('/');
-
     try {
-        const networkObj = parseIp(network);
         const ipObj = parseIp(ipToCheck);
 
         if (networkObj.constructor !== ipObj.constructor) {
             throw new Error("IP version mismatch");
         }
 
-        const isInSubnet = ipObj.address >= networkObj.networkAddress && ipObj.address <= networkObj.broadcastAddress;
+        const isInSubnet = ipObj.address >= networkObj.networkAddress.address && ipObj.address <= networkObj.broadcastAddress.address;
 
         if (isInSubnet) {
             showCheckResult(`${ipToCheck} is in the subnet`, 'success');
@@ -840,9 +836,35 @@ function fillForm(value) {
 
 async function main() {
     await history.init();
-    const urlAddress = getAddressFromURL();
-    if (urlAddress) { fillForm(urlAddress); } else { fillForm((await history.getLast()).value); }
+
+    let urlAddress = getAddressFromURL();
+    if (!urlAddress) {
+        let last = await history.getLast();
+        if (last !== null) urlAddress = last.value
+    }
+
+    const myAddresses = await Promise.all([myIPv4address(), myIPv6address()]);
+    if (!urlAddress) {
+        for (const address of myAddresses) {
+            if (address) {
+                urlAddress = address;
+                break;
+            }
+        }
+    }
+
+    fillForm(urlAddress);
+
     document.getElementById('ipAddress').focus()
+
+    const examples = document.getElementById('examples');
+    for (const address of myAddresses) {
+        if (address) examples.innerHTML += `<li><a onclick="fillForm('${address}')">${address} (current Address)</a></li>`;
+    }
+    examples.innerHTML += `<li><a onclick="fillForm('10.0.0.0/8')">Complete IPv4 address 10.0.0.0/8</a></li>`;
+    examples.innerHTML += `<li><a onclick="fillForm('2000::/3')">Complete IPv6 address with netmask 2000::/3</a></li>`;
+    examples.innerHTML += `<li><a onclick="fillForm('192.168.1.0')">192.168.1.0 (default /24)</a></li>`;
+    examples.innerHTML += `<li><a onclick="fillForm('2001:db8:1234::5')">2001:db8:1234::5 (default /64)</a></li>`;
 }
 
 
@@ -858,6 +880,19 @@ async function updateHistory() {
             </ul>
         </div>
     `;
+}
+
+async function myIPv4address() {
+    const response = await fetch('https://ipv4-check-perf.radar.cloudflare.com/api/info');
+    const data = await response.json();
+    return data.ip_address;
+}
+
+async function myIPv6address() {
+    // fetch info from https://ipv6-check-perf.radar.cloudflare.com/api/info
+    const response = await fetch('https://ipv6-check-perf.radar.cloudflare.com/api/info');
+    const data = await response.json();
+    return data.ip_address;
 }
 
 document.addEventListener('DOMContentLoaded', main);
